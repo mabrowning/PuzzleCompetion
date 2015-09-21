@@ -1,0 +1,7 @@
+puzzle_test*
+.*swp
+*~
+*.stacks
+*.svg
+*.out
+callgrind.*
