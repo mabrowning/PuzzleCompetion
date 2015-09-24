@@ -45,32 +45,47 @@ State GetRandomInitialState( State state, int max = 50  )
 }
 
 
-int main( int argc, char** argv )
+int main(int argc, char** argv)
 {
 
-	std::signal( SIGUSR1, signal_handler );
+	std::signal(SIGUSR1, signal_handler);
 
-	typedef SlidingPuzzleState<4,4> State_t;
+	typedef SlidingPuzzleState<4, 4> State_t;
 
-	auto initial = GetRandomInitialState( State_t(), 200 );
+	State_t initial;
 
 	//Solve that puzzle
-	bool idast = ( argc > 1 && strcmp( argv[1], "idastar" ) == 0 );
-	bool rbfs  = ( argc > 1 && strcmp( argv[1], "rbfs"    ) == 0 );
-	std::vector< State_t::Action > Solution;
-	if( idast )
+
+	bool  ast = false;
+	bool rbfs = false;
+	bool rand = false;
+
+	int i = 1;
+	while (i < argc)
 	{
-		auto Solver = IDAStar<State_t >{};
-		gPrintStatus = &Solver.PrintStatus;
-		Solution = Solver.Solve( initial );
+		char * arg = argv[i++];
+
+		ast |= (strcmp(arg, "--astar") == 0);
+		rbfs |= (strcmp(arg, "--rbfs") == 0);
+		rand |= (strcmp(arg, "--rand") == 0);
 	}
-	else if( rbfs ) 
+
+	if (rand)
 	{
-		auto Solver = RBFS<State_t>{};
-		gPrintStatus = &Solver.PrintStatus;
-		Solution = Solver.Solve( initial );
+		std::cerr << "Generating random initial state..." << std::endl;
+		initial = GetRandomInitialState(initial, 100);
 	}
 	else
+	{
+		std::cerr << "Enter initial state:" << std::endl;
+		std::cin >> initial;
+	}
+
+
+	std::cerr << "Solving...\n" << initial << std::endl;
+
+	std::vector< State_t::Action > Solution;
+	if( ast )
 	{
 		/*
 		auto Solver = AStar<State_t>{};
@@ -78,8 +93,23 @@ int main( int argc, char** argv )
 		Solution = Solver.Solve( initial );
 		*/
 
-		std::cout << "A* disabled!" << std::endl;
+		std::cerr << "A* disabled!" << std::endl;
 		return -1;
+	}
+	else if( rbfs ) 
+	{
+		std::cerr << "Using RBFS" << std::endl;
+		auto Solver = RBFS<State_t>{};
+		gPrintStatus = &Solver.PrintStatus;
+		Solution = Solver.Solve( initial );
+	}
+	else
+	{
+		//Default
+		std::cerr << "Using IDA*" << std::endl;
+		auto Solver = IDAStar<State_t >{};
+		gPrintStatus = &Solver.PrintStatus;
+		Solution = Solver.Solve( initial );
 	}
 
 
@@ -91,7 +121,7 @@ int main( int argc, char** argv )
 		std::cout << action << "->\n" << state;
 	}
 
-	std::cout << initial << "Took " << Solution.size() << " steps" << std::endl;
+	std::cerr << initial << "Took " << Solution.size() << " steps" << std::endl;
 #ifdef _MSC_VER
 	//Keep window open
 	std::cin.get();

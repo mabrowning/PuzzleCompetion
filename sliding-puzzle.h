@@ -126,8 +126,7 @@ struct SlidingPuzzleState
 		return GoalDist == 0;
 	}
 
-	private:
-	int DoEstGoalDist() const 
+	void DoEstGoalDist()
 	{
 		//Esimate the "number of moves" needed to get to the goal state
 		int dist = 0;
@@ -146,8 +145,11 @@ struct SlidingPuzzleState
 				dist += abs( n_ - n ) + abs( m_ - m );
 			}
 		}
-		return dist;
+
+		GoalDist = dist;
 	}
+
+	private:
 
 	int GoalDist;// = DoEstGoalDist();
 
@@ -227,6 +229,28 @@ std::ostream & operator<<(std::ostream &os, const SlidingPuzzleState<N,M> & t )
 	os << std::endl;
 
 	return os;
+}
+
+template< unsigned int N, unsigned int M>
+std::istream & operator>>(std::istream &is, SlidingPuzzleState<N,M> & t )
+{
+	for (int i = 0; i < N; ++i)
+		for (int j = 0; j < M; ++j )
+		{
+			int temp;
+			is >> temp;
+			if (temp == 0)
+			{
+				//record m, n
+				t.n = i;
+				t.m = j;
+			}
+			t.arr[i][j] = temp;
+		}
+
+	t.DoEstGoalDist();
+
+	return is;
 }
 
 #endif
