@@ -5,3 +5,8 @@ puzzle_test*
 *.svg
 *.out
 callgrind.*
+*.sdf
+.vs
+Debug
+Release
+*.user

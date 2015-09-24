@@ -7,7 +7,7 @@
 #include <limits>
 #include <algorithm>
 #include <stack>
-#include "cpp-sort/sort.h"
+#include "cpp-sort/detail/sort_n.h"
 
 template< typename State > 
 struct RBFS
@@ -89,7 +89,8 @@ std::vector< Action > Solve( const State & initial )
 	while( true )
 	{
 		auto & frame = Stack.back();
-		cppsort::sort( frame.child );
+
+		cppsort::detail::sort_n<Action::MaxBranch, void >( std::begin( frame.child ), std::less<decltype(frame.child[0])>() );
 
 		auto & top = frame.child[0];
 

@@ -6,7 +6,7 @@
 #include <queue>
 #include <limits>
 #include <algorithm>
-#include "cpp-sort/sort.h"
+#include "cpp-sort/detail/sort_n.h"
 
 template< typename State > 
 struct IDAStar
@@ -58,7 +58,7 @@ std::vector< Action > Solve( const State & initial )
 				}
 				++i;
 			}
-			cppsort::sort( successors );
+			cppsort::detail::sort_n<Action::MaxBranch, void >( std::begin( successors ), std::less<decltype(*i)>() );
 		}
 	};
 	std::deque< StackFrame > Stack { { StackFrame{ initial, Action(), 0 }}  };

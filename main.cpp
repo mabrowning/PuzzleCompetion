@@ -2,11 +2,15 @@
 
 #include <csignal>
 #include <cstring>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#define SIGUSR1 SIGINT
+#endif
 
 #include "sliding-puzzle.h"
 
-#include "astar-solve.h"
+//#include "astar-solve.h"
 #include "idastar-solve.h"
 #include "rbfs-solve.h"
 
@@ -68,9 +72,14 @@ int main( int argc, char** argv )
 	}
 	else
 	{
+		/*
 		auto Solver = AStar<State_t>{};
 		gPrintStatus = &Solver.PrintStatus;
 		Solution = Solver.Solve( initial );
+		*/
+
+		std::cout << "A* disabled!" << std::endl;
+		return -1;
 	}
 
 	std::cout << Solution.size() << std::endl;
@@ -82,6 +91,10 @@ int main( int argc, char** argv )
 		state = state.Apply( action );
 		std::cout << action << "->\n" << state;
 	}
+#ifdef _MSC_VER
+	//Keep window open
+	std::cin.get();
+#endif
 	return 0;
 }
 

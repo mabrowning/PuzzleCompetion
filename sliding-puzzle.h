@@ -67,10 +67,6 @@ std::ostream & operator<<(std::ostream &os, const SlidingPuzzleAction & a )
 	return os;
 }
 
-constexpr std::size_t factorial(std::size_t n) { 
-	    return n == 0 ? 1  :  n * factorial(n-1); 
-}
-
 //N rows by M columns
 template< unsigned int N, unsigned int M>
 struct SlidingPuzzleState
@@ -78,7 +74,6 @@ struct SlidingPuzzleState
 	typedef SlidingPuzzleAction Action;
 
 	typedef unsigned char index_t;
-	constexpr static std::size_t NumStates = factorial( N * M );
 	//API for AStarSolve
 	Action::Actions AvailableActions( Action PrevAction = Action{}  ) const
 	{
