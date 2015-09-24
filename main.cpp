@@ -8,7 +8,7 @@
 #define SIGUSR1 SIGINT
 #endif
 
-#include "sliding-puzzle.h"
+#include "color-puzzle.h"
 
 //#include "astar-solve.h"
 #include "idastar-solve.h"
@@ -29,6 +29,7 @@ void signal_handler(int signal)
 template<typename State>
 State GetRandomInitialState( State state, int max = 50  )
 {
+	/*
 	state.init();
 	typename State::Action lastAction; //default
 	for( int i = 0 ; i < max; ++i )
@@ -41,6 +42,7 @@ State GetRandomInitialState( State state, int max = 50  )
 		lastAction = *paction;
 	}
 
+	*/
 	return state;
 }
 
@@ -50,7 +52,7 @@ int main(int argc, char** argv)
 
 	std::signal(SIGUSR1, signal_handler);
 
-	typedef SlidingPuzzleState<4, 4> State_t;
+	typedef ColorPuzzleState<10> State_t;
 
 	State_t initial;
 
@@ -109,7 +111,27 @@ int main(int argc, char** argv)
 		std::cerr << "Using IDA*" << std::endl;
 		auto Solver = IDAStar<State_t >{};
 		gPrintStatus = &Solver.PrintStatus;
-		Solution = Solver.Solve( initial );
+
+		int min_sol = 1000000000;
+		std::vector< State_t::Action > MinSol;
+
+		for( int i = 0; i < 10; ++i )
+			for( int j = 0; j < 10; ++j )
+			{
+				std::cerr << i << " " << j <<std::endl;
+				auto state = initial;
+				state.MarkSpace( i, j );
+				std::cerr << state;
+
+				/*
+				Solution = Solver.Solve( state );
+				if( Solution.size() < min_sol )
+				{
+					MinSol = Solution;
+					min_sol = Solution.size();
+				}
+				*/
+			}
 	}
 
 
