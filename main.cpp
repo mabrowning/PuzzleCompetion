@@ -50,7 +50,7 @@ int main( int argc, char** argv )
 
 	std::signal( SIGUSR1, signal_handler );
 
-	typedef SlidingPuzzleState<5,5> State_t;
+	typedef SlidingPuzzleState<4,4> State_t;
 
 	auto initial = GetRandomInitialState( State_t(), 100 );
 

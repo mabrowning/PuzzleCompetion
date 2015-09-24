@@ -10,3 +10,4 @@ callgrind.*
 Debug
 Release
 *.user
+*.opensdf
