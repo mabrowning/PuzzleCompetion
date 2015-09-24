@@ -52,7 +52,7 @@ int main( int argc, char** argv )
 
 	typedef SlidingPuzzleState<4,4> State_t;
 
-	auto initial = GetRandomInitialState( State_t(), 100 );
+	auto initial = GetRandomInitialState( State_t(), 200 );
 
 	//Solve that puzzle
 	bool idast = ( argc > 1 && strcmp( argv[1], "idastar" ) == 0 );
@@ -82,7 +82,6 @@ int main( int argc, char** argv )
 		return -1;
 	}
 
-	std::cout << Solution.size() << std::endl;
 
 	auto state = initial;
 	std::cout << state;
@@ -91,6 +90,8 @@ int main( int argc, char** argv )
 		state = state.Apply( action );
 		std::cout << action << "->\n" << state;
 	}
+
+	std::cout << initial << "Took " << Solution.size() << " steps" << std::endl;
 #ifdef _MSC_VER
 	//Keep window open
 	std::cin.get();

@@ -90,7 +90,7 @@ std::vector< Action > Solve( const State & initial )
 	{
 		auto & frame = Stack.back();
 
-		cppsort::detail::sort_n<Action::MaxBranch, void >( std::begin( frame.child ), std::less<decltype(frame.child[0])>() );
+		cppsort::detail::sort_n<Action::MaxBranch, void >( frame.child, std::less<StateAndMeta>() );
 
 		auto & top = frame.child[0];
 

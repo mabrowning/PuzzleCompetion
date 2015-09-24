@@ -58,7 +58,7 @@ std::vector< Action > Solve( const State & initial )
 				}
 				++i;
 			}
-			cppsort::detail::sort_n<Action::MaxBranch, void >( std::begin( successors ), std::less<decltype(*i)>() );
+			cppsort::detail::sort_n<Action::MaxBranch, void >( successors, std::less<Successor>() );
 		}
 	};
 	std::deque< StackFrame > Stack { { StackFrame{ initial, Action(), 0 }}  };
