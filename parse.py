@@ -1,6 +1,22 @@
+#!/opt/local/bin/pypy
 #!/usr/bin/python
 
+import sys
 from collections import deque, defaultdict
+import multiprocessing
+
+class defaultlist(list):
+    def __init__(self, fx):
+        self._fx = fx
+    def _fill(self, index):
+        while len(self) <= index:
+            self.append(self._fx())
+    def __setitem__(self, index, value):
+        self._fill(index)
+        list.__setitem__(self, index, value)
+    def __getitem__(self, index):
+        self._fill(index)
+        return list.__getitem__(self, index)
 
 class Color:
 	count = 0
@@ -46,7 +62,10 @@ class Cell:
 
 rows=[]
 cells=[]
-with open("hard.cgp") as f:
+
+print( "Parsing...")
+filename= len(sys.argv) > 1 and sys.argv[1] or "medium.cgp"
+with open( filename ) as f:
 	N = int(f.readline().strip() )
 
 	for x in range(N):
@@ -64,14 +83,12 @@ for c in cells:
 	c.orthadj( rows )
 
 for c in cells:
-	#print(c)
 	added = True
 	
 	while added:
 		added = False
 		for o in c.adj.copy():
 			if c.color == o.color:
-				#print("\t"+str(o))
 				added = True
 
 				#merge
@@ -84,7 +101,6 @@ for c in cells:
 					c.adj.add( n )
 				o.adj.clear()
 
-				#print("\t\t->"+str(c.adj))
 
 
 
@@ -94,16 +110,7 @@ for c in cells:
 	for n in c.adj:
 		c.adj_col[ n.color ].add( n ) 
 
-good = [rows[24][37], 
-		rows[28][34], 
-		rows[33][28],
-		rows[37][34],
-		rows[27][31],
-		rows[18][37],
-		rows[43][36] ]
-
-#cells.sort( key=lambda l:len(l.adj) , reverse=True )
-#print( str(cells[0])+" "+str(cells[0].adj))
+#BEGIN SOLVE
 
 def BFS( root, cells ):
 
@@ -137,14 +144,42 @@ def BFS( root, cells ):
 
 	root.rdist = root.dist
 
-import copy
+#This finds the best candidate starting point
+
+#First, find the cells with the most immediate neighbors
+cells.sort( key=lambda l:len(l.adj) , reverse=True )
+for c in cells[:100]:
+	#then, find the worst-case distance to every cell staring from this one
+	BFS( c, cells )
+
+#find the lowest total worst-case cost first
+cells.sort( key=lambda l:l.rdist )
+
+#print( str(cells[0])+": "+str(cells[0].rdist)+" "+str(cells[0].adj))
+#exit(1)
+
+#good = [rows[24][37], 
+#		rows[28][34], 
+#		rows[33][28],
+#		rows[37][34],
+#		rows[27][31],
+#		rows[18][37],
+#		rows[43][36] ]
 
 def get_h( cell ):
 	h = 0
 	for col,adj in cell.adj_col.iteritems():
 		for n in adj:
-			h = max( h, n.dist)
+			h = max( h, n.dist+1)
 	return h
+
+depths = defaultlist( lambda:[0,0,0,0] )
+def tallydepth( g, color ):
+	try:
+		depths[g][color.index] += 1
+	except:
+		print( g, color.index ) 
+
 
 class WhiteCell:
 	def __init__( self, node, color ):
@@ -157,51 +192,110 @@ class WhiteCell:
 			adj = col in node.adj_col and node.adj_col[ col ] or set()
 			self.adj_col[col] = adj.union( *[a.adj_col[col] for a in newwhite] ) - self.white
 
-found = True
-sol = []
-
-def idastar_step( node, g, bound ):
-	global found, sol
+def idastar_step( node, g, bound, sol, my_col=-1, my_dep=-1 ):
 	h = get_h( node )
 	if h == 0:
-		print("Found! " + str(len(node.white) ))
-		found = True
-		return
+		return ( True, 0 )
 	f = g + h
 	if f > bound:
-		return f
+		return (False, f )
 	
 	min_t = 10000
 	for color,adj in sorted( node.adj_col.iteritems(), key=lambda (k,v):len(v), reverse=True):
-		min_t = min( min_t, idastar_step( WhiteCell( node, color), g + 1, bound ) )
+		#tallydepth(g,color)
+		if g == my_dep and color.index != my_col:
+			#print( my_dep, my_col, color.index )
+			continue
+		found, f_n = idastar_step( WhiteCell( node, color), g + 1, bound, sol, my_col, my_dep ) 
+		min_t = min( min_t, f_n )
 		if found:
 			sol.append( color )
-			return
+			return ( found, min_t )
 
-	return min_t
+	return ( False, min_t )
 
 def idastar( root, cells ):
-	global found, sol
-	found = False
-	sol = []
-	#ncells = copy.deepcopy( cells )
 	BFS( root, cells )
 	bound = -1
-	newbound = get_h( root )
+	newbound = 5 
 	root.white = set( [root] )
+
+	found = False
+	sol = []
 	while not found and bound != newbound:
 		bound = newbound
-		newbound = idastar_step( root, 0, bound )
-		print("newbound="+str(newbound))
+		found, newbound = idastar_step( root, 0, bound, sol )
+	sol.append( (root.x, root.y ) )
 	sol.reverse()
-	print( root.x, root.y)
-	print( len(sol), sol )
+	return sol
+
+def idastar_mp_run( root, cells, my_dep, my_col, q ):
+	print( "Starting with "+str(my_dep)+" "+str(my_col) )
+	found = False
+	sol = []
+	bound = -1
+	newbound = 15 
+	while not found and bound != newbound:
+		bound = newbound
+		found, newbound = idastar_step( root, 0, bound, sol, my_col, my_dep )
+		print( "newbound="+str(newbound)+" for "+str(my_col))
+	sol.append( (root.x, root.y ) )
+	sol.append( len( sol ) )
+	sol.reverse()
+	q.put( sol )
 
 
-idastar( good[0], cells )
+def idastar_mp( root, cells ):
+	BFS( root, cells )
+	root.white = set( [root] )
+	procs = []
+	q = multiprocessing.Queue()
+	for i in range(4):
+		proc = multiprocessing.Process( target = idastar_mp_run, args = ( root, cells, 8, i, q ) )
+		proc.start()
+		procs.append( proc )
 
-#for c in cells[:100]:
-#	BFS( c, cells )
-#cells.sort( key=lambda l:l.rdist )
+	sols = []
+
+	for proc in procs:
+		proc.join()
+		while not q.empty():
+			sols.append( q.get() )
+		print(sols)
+
+	sols.sort( key=lambda x:x[0] )
+	return sols[0]
+	
+
+
+print("Solving...")
+def serial_solve( cells ):
+	sols = []
+	for c in cells:
+		try:
+			sol =  idastar( c, cells ) 
+			print( len(sol), sol )
+			sols.append(sol)
+		except KeyboardInterrupt:
+			break
+
+	if sols:
+		sols.sort( key=lambda l:len(l) )
+		print("Best:")
+		print( len(sols[0]), sols[0] )
+def parallel_solve( cells ):
+	sols = []
+	for c in cells:
+		sol =  idastar_mp( c, cells ) 
+		print( sol )
+	if sols:
+		sols.sort( key=lambda l:len(l) )
+		print("Best:")
+		print( len(sols[0]), sols[0] )
+serial_solve( cells )
+#print( len(sols[0]), sols[0] )
+
+#idastar( cells[0], cells )
+
 
 
