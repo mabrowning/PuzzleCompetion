@@ -217,7 +217,7 @@ def idastar_step( node, g, bound, sol, my_col=-1, my_dep=-1 ):
 def idastar( root, cells ):
 	BFS( root, cells )
 	bound = -1
-	newbound = 5 
+	newbound = 15 #adjust this to be close to the bound to minimize subtree traversal
 	root.white = set( [root] )
 
 	found = False
@@ -230,15 +230,14 @@ def idastar( root, cells ):
 	return sol
 
 def idastar_mp_run( root, cells, my_dep, my_col, q ):
-	print( "Starting with "+str(my_dep)+" "+str(my_col) )
+	#print( "Starting with "+str(my_dep)+" "+str(my_col) )
 	found = False
 	sol = []
 	bound = -1
-	newbound = 15 
+	newbound = 15 #adjust this to be close to the bound to minimize subtree traversal
 	while not found and bound != newbound:
 		bound = newbound
 		found, newbound = idastar_step( root, 0, bound, sol, my_col, my_dep )
-		print( "newbound="+str(newbound)+" for "+str(my_col))
 	sol.append( (root.x, root.y ) )
 	sol.append( len( sol ) )
 	sol.reverse()
@@ -261,7 +260,7 @@ def idastar_mp( root, cells ):
 		proc.join()
 		while not q.empty():
 			sols.append( q.get() )
-		print(sols)
+		#print(sols)
 
 	sols.sort( key=lambda x:x[0] )
 	return sols[0]
@@ -271,7 +270,7 @@ def idastar_mp( root, cells ):
 print("Solving...")
 def serial_solve( cells ):
 	sols = []
-	for c in cells:
+	for c in cells[:10]: #Look at 10 best starting locations
 		try:
 			sol =  idastar( c, cells ) 
 			print( len(sol), sol )
@@ -283,16 +282,18 @@ def serial_solve( cells ):
 		sols.sort( key=lambda l:len(l) )
 		print("Best:")
 		print( len(sols[0]), sols[0] )
+
 def parallel_solve( cells ):
 	sols = []
-	for c in cells:
+	for c in cells[:10]: #Look at 10 best starting locations
 		sol =  idastar_mp( c, cells ) 
 		print( sol )
 	if sols:
 		sols.sort( key=lambda l:len(l) )
 		print("Best:")
 		print( len(sols[0]), sols[0] )
-serial_solve( cells )
+
+parallel_solve( cells )
 #print( len(sols[0]), sols[0] )
 
 #idastar( cells[0], cells )
