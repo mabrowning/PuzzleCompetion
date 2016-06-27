@@ -6,17 +6,17 @@ from collections import deque, defaultdict
 import multiprocessing
 
 class defaultlist(list):
-    def __init__(self, fx):
-        self._fx = fx
-    def _fill(self, index):
-        while len(self) <= index:
-            self.append(self._fx())
-    def __setitem__(self, index, value):
-        self._fill(index)
-        list.__setitem__(self, index, value)
-    def __getitem__(self, index):
-        self._fill(index)
-        return list.__getitem__(self, index)
+	def __init__(self, fx):
+		self._fx = fx
+	def _fill(self, index):
+		while len(self) <= index:
+			self.append(self._fx())
+	def __setitem__(self, index, value):
+		self._fill(index)
+		list.__setitem__(self, index, value)
+	def __getitem__(self, index):
+		self._fill(index)
+		return list.__getitem__(self, index)
 
 class Color:
 	count = 0
@@ -31,7 +31,7 @@ class Color:
 	def __repr__( self ):
 		return self.color
 
-Color.RED    = Color("RED")
+Color.RED	= Color("RED")
 Color.GREEN  = Color("GREEN")
 Color.BLUE   = Color("BLUE")
 Color.YELLOW = Color("YELLOW")
@@ -42,11 +42,14 @@ class Cell:
 	def __init__( self, col,x,y ):
 		self.x = x
 		self.y = y
+		self.id = 0 #will bet set later
 		self.color = Color.ByColor( col )
 		self.adj = set()
 		self.adj_col = defaultdict(set)
 		self.rdist = 100000
 		self.visited = False
+	def __hash__( self ):
+		return self.id
 
 	def orthadj( self, cells ):
 		if self.x > 0:
@@ -60,55 +63,59 @@ class Cell:
 	def __repr__( self ):
 		return "("+str(self.x)+","+str(self.y)+"="+self.color.color[0]+")"
 
-rows=[]
-cells=[]
+def parse( filename ="medium.cgp" ):
+	print( "Parsing...")
+	rows=[] #temporary grid based storaged
+	cells=[] #merged adjacent grids of same color
 
-print( "Parsing...")
-filename= len(sys.argv) > 1 and sys.argv[1] or "medium.cgp"
-with open( filename ) as f:
-	N = int(f.readline().strip() )
+	with open( filename ) as f:
+		N = int(f.readline().strip() )
 
-	for x in range(N):
-		col = []
-		for y in range(N):
-			cell =  Cell(f.readline().strip(),x,y) 
-			cells.append( cell )
-			col.append(cell)
+		for x in range(N):
+			col = []
+			for y in range(N):
+				cell =  Cell(f.readline().strip(),x,y) 
+				cells.append( cell )
+				col.append(cell)
 
-		rows.append( col )
-
-
-
-for c in cells:
-	c.orthadj( rows )
-
-for c in cells:
-	added = True
-	
-	while added:
-		added = False
-		for o in c.adj.copy():
-			if c.color == o.color:
-				added = True
-
-				#merge
-				o.adj.remove(c)
-				c.adj.remove(o)
-				#update neighbors
-				for n in o.adj:
-					n.adj.remove( o )
-					n.adj.add( c )
-					c.adj.add( n )
-				o.adj.clear()
+			rows.append( col )
 
 
 
+	for c in cells:
+		c.orthadj( rows )
 
-cells = [ c for c in cells if c.adj ]
+	for c in cells:
+		added = True
+		
+		while added:
+			added = False
+			for o in c.adj.copy():
+				if c.color == o.color:
+					added = True
 
-for c in cells:
-	for n in c.adj:
-		c.adj_col[ n.color ].add( n ) 
+					#merge
+					o.adj.remove(c)
+					c.adj.remove(o)
+					#update neighbors
+					for n in o.adj:
+						n.adj.remove( o )
+						n.adj.add( c )
+						c.adj.add( n )
+					o.adj.clear()
+
+
+
+
+	cells = [ c for c in cells if c.adj ]
+
+	id = 0
+	for c in cells:
+		c.id = id
+		id += 1
+		for n in c.adj:
+			c.adj_col[ n.color ].add( n ) 
+	return cells
 
 #BEGIN SOLVE
 
@@ -144,27 +151,17 @@ def BFS( root, cells ):
 
 	root.rdist = root.dist
 
-#This finds the best candidate starting point
+def sort_by_best_starting( cells ):
+	#This finds the best candidate starting point
 
-#First, find the cells with the most immediate neighbors
-cells.sort( key=lambda l:len(l.adj) , reverse=True )
-for c in cells[:100]:
-	#then, find the worst-case distance to every cell staring from this one
-	BFS( c, cells )
+	#First, find the cells with the most immediate neighbors
+	cells.sort( key=lambda l:len(l.adj) , reverse=True )
+	for c in cells[:100]: #Only the top 100
+		#then, find the worst-case distance to every cell staring from this one
+		BFS( c, cells )
 
-#find the lowest total worst-case cost first
-cells.sort( key=lambda l:l.rdist )
-
-#print( str(cells[0])+": "+str(cells[0].rdist)+" "+str(cells[0].adj))
-#exit(1)
-
-#good = [rows[24][37], 
-#		rows[28][34], 
-#		rows[33][28],
-#		rows[37][34],
-#		rows[27][31],
-#		rows[18][37],
-#		rows[43][36] ]
+	#find the lowest total worst-case cost first
+	cells.sort( key=lambda l:l.rdist )
 
 def get_h( cell ):
 	h = 0
@@ -267,7 +264,6 @@ def idastar_mp( root, cells ):
 	
 
 
-print("Solving...")
 def serial_solve( cells ):
 	sols = []
 	for c in cells[:10]: #Look at 10 best starting locations
@@ -293,10 +289,12 @@ def parallel_solve( cells ):
 		print("Best:")
 		print( len(sols[0]), sols[0] )
 
-parallel_solve( cells )
-#print( len(sols[0]), sols[0] )
+if __name__ == "__main__":
+	if len(sys.argv) > 1 :
+		cells = parse( sys.argv[1] ) 
+	else:
+		cells = parse() 
 
-#idastar( cells[0], cells )
-
-
+	print("Solving...")
+	parallel_solve( cells )
 
