@@ -77,17 +77,28 @@ std::istream & operator>>(std::istream &is, ColorPuzzleAction & a )
 	std::string color ;
 	is >> color;
 
-	     if( color == "RED" ) a.color = ColorPuzzleAction::COLOR_RED;
-	else if( color == "BLUE" ) a.color = ColorPuzzleAction::COLOR_BLUE;
-	else if( color == "GREEN" ) a.color = ColorPuzzleAction::COLOR_GREEN;
+	     if( color == "RED" )    a.color = ColorPuzzleAction::COLOR_RED;
+	else if( color == "BLUE" )   a.color = ColorPuzzleAction::COLOR_BLUE;
+	else if( color == "GREEN" )  a.color = ColorPuzzleAction::COLOR_GREEN;
 	else if( color == "YELLOW" ) a.color = ColorPuzzleAction::COLOR_YELLOW;
 
 	return is;
 }
 
+//For building initial graph
+struct Node
+{
+	int x, y;
+	ColorPuzzleAction color;
+	std::vector< Node* > adj;
+};
 
-//N rows by N columns
-template< unsigned int N>
+struct ColorPuzzle
+{
+	std::vector< std::vector< Node > > cells;
+
+};
+
 struct ColorPuzzleState
 {
 	typedef ColorPuzzleAction Action;
@@ -97,13 +108,6 @@ struct ColorPuzzleState
 	Action::Actions AvailableActions( Action PrevAction = Action{}  ) const
 	{
 		Action::Actions ret = { nullptr, nullptr, nullptr, nullptr };
-
-		//TODO: find any adjacent colors
-		auto act = ret.data();
-		if( !BLUE.empty() ) *(act++) = &Action::BLUE;
-		if( !RED.empty() ) *(act++) = &Action::RED;
-		if( !YELLOW.empty() ) *(act++) = &Action::YELLOW ;
-		if( !GREEN.empty() ) *(act++) = &Action::GREEN;
 
 		return ret;
 	}
@@ -116,73 +120,9 @@ struct ColorPuzzleState
 	}
 
 	//Implementation details
-	
-	//N columns of N rows
-	typedef std::array< std::array< Action, N>, N > arr_t;
-	arr_t arr;
-
-	typedef std::vector< std::pair< char,char > > free_t;
-	free_t RED;
-	free_t BLUE;
-	free_t GREEN;
-	free_t YELLOW;
-
-	free_t none;
-
 
 	ColorPuzzleState( )
 	{
-	}
-
-	free_t & GetFree( const Action & a )
-	{
-
-		switch( a.color )
-		{
-			case ColorPuzzleAction::COLOR_RED:
-				return RED;
-			case ColorPuzzleAction::COLOR_BLUE:
-				return BLUE;
-			case ColorPuzzleAction::COLOR_GREEN:
-				return GREEN;
-			case ColorPuzzleAction::COLOR_YELLOW:
-				return YELLOW;
-		}
-
-		return none;
-	}
-
-	Action & GetColor( char n, char m )
-	{
-		if( n < 0 || m < 0 || n >= N || m >= N ) return Action::NONE;
-
-		return arr[m][n];
-	}
-
-	void MarkSpace( char n, char m, Action & Color )
-	{
-		GetFree( Color ).push_back( std::pair<char,char>{ n, m } );
-
-		auto & U = GetColor(n-1,m );
-		if( Color == U || Color == Action::WHITE ) MarkSpace( n-1,m, Color );
-
-		auto & D = GetColor(n+1,m );
-		if( Color == D || Color == Action::WHITE ) MarkSpace( n+1,m, Color );
-
-		auto & L = GetColor(n,m-1 );
-		if( Color == L || Color == Action::WHITE ) MarkSpace( n,m-1, Color );
-
-		auto & R = GetColor(n,m+1 );
-		if( Color == R || Color == Action::WHITE ) MarkSpace( n,m+1, Color );
-
-		arr[m][n] = Action::WHITE;
-	}
-
-	void MarkSpace( char n, char m )
-	{
-		MarkSpace( n,m, GetColor( n, m ) );
-
-		GoalDist = RED.size() + BLUE.size() + GREEN.size() + YELLOW.size();
 	}
 
 	int EstGoalDist() const { return GoalDist; };
@@ -205,36 +145,26 @@ struct ColorPuzzleState
 		: arr ( o.arr )
 		, GoalDist( o.GoalDist )
 	{
-		free_t & f = GetFree( color );
-
-		for( auto & nm : f )
-			MarkSpace( nm.first, nm.second );
-
-		f.clear();
-
-		GoalDist = RED.size() + BLUE.size() + GREEN.size() + YELLOW.size();
 	}
 };
 
-template<unsigned N> 
-bool operator==( const ColorPuzzleState<N> & lhs, const ColorPuzzleState<N> & rhs )
+bool operator==( const ColorPuzzleState & lhs, const ColorPuzzleState & rhs )
 {
 	return lhs.arr == rhs.arr;
 }
 
 namespace std
 {
-	template<unsigned N> struct hash< ColorPuzzleState<N> >
+	struct hash< ColorPuzzleState >
 	{
-		size_t operator() ( const ColorPuzzleState<N> & state ) const
+		size_t operator() ( const ColorPuzzleState & state ) const
 		{
-			return hash< typename ColorPuzzleState<N>::arr_t >()( state.arr ) ;
+			return hash< typename ColorPuzzleState::arr_t >()( state.arr ) ;
 		}
 	};
 }
 
-template< unsigned int N >
-std::ostream & operator<<(std::ostream &os, const ColorPuzzleState<N> & t )
+std::ostream & operator<<(std::ostream &os, const ColorPuzzleState & t )
 {
 	for( int i = 0; i < N; ++ i )
 	{
@@ -247,12 +177,13 @@ std::ostream & operator<<(std::ostream &os, const ColorPuzzleState<N> & t )
 	return os;
 }
 
-template< unsigned int N>
-std::istream & operator>>(std::istream &is, ColorPuzzleState<N> & t )
+std::istream & operator>>(std::istream &is, ColorPuzzleState & t )
 {
+	int size;
+	is >> size;
 
-	for( auto & col : t.arr )
-		for( auto & val : col )
+	std::vector< std::vector< Node > > nodes;
+	for
 			is >> val;
 
 	return is;
