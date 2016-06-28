@@ -48,8 +48,6 @@ class Cell:
 		self.adj_col = defaultdict(set)
 		self.rdist = 100000
 		self.visited = False
-	def __hash__( self ):
-		return self.id
 
 	def orthadj( self, cells ):
 		if self.x > 0:
@@ -187,7 +185,44 @@ class WhiteCell:
 			if col == color:
 				continue
 			adj = col in node.adj_col and node.adj_col[ col ] or set()
-			self.adj_col[col] = adj.union( *[a.adj_col[col] for a in newwhite] ) - self.white
+			n = adj.union( *[a.adj_col[col] for a in newwhite] ) - self.white
+			if n: 
+				self.adj_col[col]  = n
+
+
+from heapq import heappush, heappop, heapify
+
+def astar( root, cells ):
+	BFS( root, cells )
+	mincost = dict()
+	q = []
+	root.white = set( [root] )
+	h = get_h( root )
+	heappush( q, (h, 0, [], root ) )
+
+	while( len( q )>0 ):
+		f, g, steps, node = heappop(q)
+		if len(node.adj_col)==0:
+			return steps
+		for color,adj in sorted( node.adj_col.iteritems(), key=lambda (k,v):len(v), reverse=True):
+			white = tuple(node.white | adj )
+			cost = mincost.get( white, 1000000 )
+			if g >= cost:
+				continue
+			mincost[ white ] = g
+			wc = WhiteCell( node, color )
+			h = get_h( wc )
+			heappush( q, (g+1+h, g+1, steps+[color], wc ) )
+		if( len(q) > 2000 ):
+			print("Dumping")
+			q2 = []
+			for x in range(1000):
+				q2.append( q.pop() )
+			q = q2
+			heapify(q)
+	return []
+
+
 
 def idastar_step( node, g, bound, sol, my_col=-1, my_dep=-1 ):
 	h = get_h( node )
@@ -226,6 +261,8 @@ def idastar( root, cells ):
 	sol.reverse()
 	return sol
 
+#Multiprocessing works by subdividing the state space 
+#based on the "choice" "my_col" (color) at game step "my_dep"
 def idastar_mp_run( root, cells, my_dep, my_col, q ):
 	#print( "Starting with "+str(my_dep)+" "+str(my_col) )
 	found = False
@@ -245,7 +282,7 @@ def idastar_mp( root, cells ):
 	BFS( root, cells )
 	root.white = set( [root] )
 	procs = []
-	q = multiprocessing.Queue()
+	q = multiprocessing.Queue() #solution q. Every process returns 1 solution (its best)
 	for i in range(4):
 		proc = multiprocessing.Process( target = idastar_mp_run, args = ( root, cells, 8, i, q ) )
 		proc.start()
@@ -279,6 +316,21 @@ def serial_solve( cells ):
 		print("Best:")
 		print( len(sols[0]), sols[0] )
 
+def astar_solve( cells ):
+	sols = []
+	for c in cells[:10]: #Look at 10 best starting locations
+		try:
+			sol = astar( c, cells ) 
+			print( len(sol), sol )
+			sols.append(sol)
+		except KeyboardInterrupt:
+			break
+
+	if sols:
+		sols.sort( key=lambda l:len(l) )
+		print("Best:")
+		print( len(sols[0]), sols[0] )
+
 def parallel_solve( cells ):
 	sols = []
 	for c in cells[:10]: #Look at 10 best starting locations
@@ -295,6 +347,8 @@ if __name__ == "__main__":
 	else:
 		cells = parse() 
 
+	sort_by_best_starting( cells )
+
 	print("Solving...")
-	parallel_solve( cells )
+	astar_solve( cells )
 
